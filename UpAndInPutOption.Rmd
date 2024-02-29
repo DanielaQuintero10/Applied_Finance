@@ -1,0 +1,118 @@
+---
+title: "UpAndInPutOption"
+output: html_document
+date: "2024-02-29"
+---
+
+```{r }
+##install.packages("UpInPutEurOption_1.1.0.tar.gz",
+ ##           type = "binaries",
+ ##                repos = NULL)
+library(tidyverse)
+```
+
+### Variables
+```{r }
+nInt = 1000
+strike= 150
+spot= 140
+vol=0.24
+Rfr= 0.07
+expiry= 0.75
+br = 20
+nReps=1000
+
+```
+
+
+```{r }
+UpInPutEurOption::getPriceForEuropeanUpAndInPut(nInt, strike, spot, vol, Rfr, expiry, br, nReps)
+
+```
+
+```{r }
+getMCEuropeanPutExpiry <- function (expiry) {
+  return(
+    UpInPutEurOption::getPriceForEuropeanUpAndInPut(nInt, strike, spot, vol, Rfr, expiry, br, nReps)
+    )
+}
+expiry <- seq(0.01, 0.71, by = 0.01)
+prices <- sapply(expiry, getMCEuropeanPutExpiry)
+```
+
+
+```{r}
+
+tibble( expiry, prices) %>%
+  ggplot(aes(expiry, prices)) +
+  geom_point(col = "blue") +
+  labs(
+    x     = "time to maturity",
+    y     = "option price",
+    title = "price of Put Up-IN option with a barrier  vs. time  to maturity")
+
+```
+
+### ============== 2. build an R wrapping function: option price vs. spot and volatility ===================================
+
+```{r }
+getMCEuropeanPutSpotAndvol <- function (spot, vol) {
+  return(
+   UpInPutEurOption::getPriceForEuropeanUpAndInPut(nInt, strike, spot, vol, Rfr, expiry, br, nReps))
+}
+
+# sequences of argument values
+spot <- seq(70, 110, by = 1)
+vol  <- c(0.001, 0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.24)
+expiry= 0.75
+grid      <- expand.grid(spot = spot, vol = vol)
+prices    <- mapply(getMCEuropeanPutSpotAndvol,
+                    spot = grid$spot, vol = grid$vol)
+```
+
+#============== ==============  visualization: options price vs. spot price and volatility ============== ============== 
+```{r }
+grid %>%
+  as_tibble() %>%
+  bind_cols(price = prices) %>%
+  ggplot(aes(x = spot, y = price, group = vol, colour = vol)) +
+  geom_line() +
+  geom_point(size = 1, shape = 21, fill = "white") +
+  labs(
+    x     = "spot price",
+    y     = "option price",
+    title = "price Put up-In option with a barrier  vs  volatility")
+```
+
+
+#### Objective
+The Goal of the Project is to apply Up-In Put European with Barrier
+
+
+#### Assumptions  
+1-Time Value: The option's value increases with time, reflecting the time value of options. This is because as maturity increases, there are more chances for the option to become "in-the-money" due to price fluctuations.
+
+2-Volatility Impact: Higher volatility increases the option's value, which is typical for options as greater volatility means a higher probability of the option breaching the barrier and becoming active.
+
+3-Non-Linear Time Decay: The non-linear increase in the option price with time suggests that the time decay (theta) of the option is not constant and could accelerate as the option nears expiration.
+
+4-Inverse Spot Price Relationship: The option price decreases as the spot price increases, which is characteristic of put options, since they become more valuable as the underlying asset's price decreases.
+
+#### Results
+
+1-The first graph shows a relationship between the price of an up-and-in put option and the time to maturity. As the time to maturity increases, the option price generally increases, indicating that time has a positive impact on the value of the option.
+
+2-In the first graph, the increase in option price is not linear; it shows some level of curvature, suggesting that the rate of increase in option price changes as the time to maturity lengthens.
+
+3-The second graph illustrates the relationship between the price of an up-and-in put option with a barrier and the underlying spot price across different levels of volatility. The option price decreases as the spot price increases.
+
+4-In the second graph, the impact of volatility is shown by different shades, with darker lines representing higher volatility. Higher volatility levels lead to a steeper slope, indicating that the option price is more sensitive to changes in the spot price when volatility is higher.
+
+5-Additionally, the second graph demonstrates that the option price is inversely related to the spot price, and this relationship is consistent across different levels of volatility, albeit the price sensitivity changes.
+
+
+#### In accordance with the Honor Code, I certify that my answers here are my own work, and I  did not make my solutions available to anyone else.
+
+
+
+
